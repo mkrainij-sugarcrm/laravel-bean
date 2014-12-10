@@ -1,0 +1,27 @@
+{
+    "name": "sugarcrm/laravel-bean",
+    "description": "",
+    "authors": [
+        {
+            "name": "David Ranney",
+            "email": "webmaster@sugarcrm.com"
+        }
+        {
+            "name": "Mikhail Kozlov",
+            "email": "webmaster@sugarcrm.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "illuminate/support": "4.1.*"
+    },
+    "autoload": {
+        "classmap": [
+            "src/migrations"
+        ],
+        "psr-0": {
+            "Sugarcrm\\Bean\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
