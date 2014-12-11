@@ -1,66 +1,33 @@
 <?php namespace Sugarcrm\Bean;
 
+use Sugarcrm\Bean\Bean;
 use Illuminate\Support\ServiceProvider;
 
 class BeanServiceProvider extends ServiceProvider {
 
-	/**
-	 * Indicates if loading of the provider is deferred.
-	 *
-	 * @var bool
-	 */
-	protected $defer = false;
+    /**
+     * Bootstrap the application events.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        Bean::setConnectionResolver($this->app['db']);
+        Bean::setEventDispatcher($this->app['events']);
+    }
 
-	/**
-	 * Bootstrap the application events.
-	 *
-	 * @return void
-	 */
-	public function boot()
-	{
-		$this->package('sugarcrm/bean');
-	}
-
-	/**
-	 * Register the service provider.
-	 *
-	 * @return void
-	 */
-	public function register()
-	{
-		//
-        /**
-         * v10 Rest API
-         */
-        \App::singleton('SugarApi', function()
+    /**
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        // Add a sugarcrm extension to the original database manager
+        $this->app['db']->extend('sugarcrm', function($config)
         {
-            $api = new \Sugarcrm\Bean\Api\v10();
-            $api->setUrl(\Config::get('bean::api.v10.url'))
-                ->setUsername(\Config::get('bean::api.v10.user'))
-                ->setPassword(\Config::get('bean::api.v10.password'));
-            return $api;
+            return new Connection($config);
         });
-        /**
-         * v4 Rest API
-         */
-        \App::singleton('SugarSoap', function()
-        {
-            $api = new \Sugarcrm\Bean\Api\v4();
-            $api->setUrl(\Config::get('bean::api.v4.url'))
-                ->setUsername(\Config::get('bean::api.v4.user'))
-                ->setPassword(\Config::get('bean::api.v4.password'));
-            return $api;
-        });
-	}
-
-	/**
-	 * Get the services provided by the provider.
-	 *
-	 * @return array
-	 */
-	public function provides()
-	{
-		return array();
-	}
+    }
 
 }

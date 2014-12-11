@@ -1,4 +1,4 @@
-<?php namespace Sugarcrm\Bean\Api;
+<?php namespace Sugarcrm\Bean;
 
 
 use Guzzle\Common\Event;
@@ -15,7 +15,7 @@ use Guzzle\Http\Query;
  * @link      https://github.com/spinegar/sugar7wrapper
  */
 
-class v10
+class Connection
 {
 
     /**
