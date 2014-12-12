@@ -40,8 +40,9 @@ Once you have laravel-bean installed you need to configure it so that it can wor
 
 ## Production configuration
 
-Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you need to configure a single file:  `app/config/packages/sugarcrm/bean/config.php`:
+Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you need to configure a single file:  `app/config/packages/sugarcrm/bean/config.php` :
 ```
+<?php
 return array(
     /**
      * Populate the "api" array as follows:
@@ -83,7 +84,7 @@ This will serve as the production configuration for laravel-bean.
 
 The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  All you need to do is create a directory under `app/config/packages/sugarcrm/bean/{instance type}` and create a `config.php` file in that directory with exactly the same format.  If you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
 
-So, how does laravel know which configuration to use?  You use the detectEnvironment() method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php`:
+So, how does laravel know which configuration to use?  You use the detectEnvironment() method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php` :
 ```
 <?php
 ...
