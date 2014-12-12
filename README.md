@@ -15,7 +15,7 @@ Here are some basic directions to get you going with this package.
 
 This package is meant to be installed via [Composer](https://getcomposer.org/).  These directions assume you have composer installed and working.
 
-In the root directory of your laravel application you create a `composer.json` file.  Within that file, add a line for laravel-bean to the `require` section.  As an example (Here `...` indicates other stuff in your composer.json file which may exist):
+In the root directory of your laravel application you should have a `composer.json` file.  Within that file, add a line for laravel-bean to the `require` section.  As an example (Here `...` indicates other stuff in your composer.json file which may exist):
 ```
 {
 	"name": "laravel/laravel",
