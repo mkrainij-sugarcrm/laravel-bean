@@ -111,6 +111,7 @@ Once you have that in place Laravel will set the environment for you based on wh
 The laravel-bean package provides for a `Bean` object which corresponds to a SugarBean in SugarCRM.  Generally you would extend Bean rather than use it directly.  For example, to represent an Opportunity you might create a class such as: 
 ```
 class OpportunityBean extends \Sugarcrm\Bean\Bean {
+    public $module = 'Opportunities';
 ...
 }
 ```
