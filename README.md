@@ -111,7 +111,7 @@ class OpportunityBean extends \Sugarcrm\Bean\Bean {
 ...
 }
 ```
-You can then instantiate an Opportunity bean and use it's methods:
+You can then instantiate an Opportunity bean and use it's methods.  The methods available for the Bean object mimic those available for SugarBean in SugarCRM.  Here are some examples.  Take a look at `vendor/sugarcrm/laravel-bean/src/Sugarcrm/Bean/Bean.php` to get a more complete picture:
 ```
 $opp = new OpportunityBean();
 ...
@@ -120,5 +120,28 @@ $all_opportunities = $opp->all();
 ...
 // Delete an opportunity
 $opp->delete("abc123-576475-kju838-dkie83");
+...
+// If you want to delete using a static call
+Bean::deleteBean("abc123-576475-kju838-dkie83");
+...
+// Get certain columns of the first 100 opportunities matching a certain where clause
+$columns = array("id","name);
+$options = array("limit" => 100, "where" => $where_clause);
+$my_collection = $opp->get($columns, $options);
+...
+// Get a particular bean
+class OpportunityBean extends Bean {
+   public $module = "Opportunities";
+}
+$another_opp = OpportunityBean::find("abc123-576475-kju838-dkie83");
+...
+// Relate one bean to another
+$contact = ContactBean::find("abc123-576475-kju838-dkie83");
+$opportunity = OpportunityBean::find("xxyyyzz-123432-l3fl34l-d0d76hgjkeuyd");
+$opportunity->relate("contacts", "abc123-576475-kju838-dkie83");
+// Unrelate one bean from another
+$opportunity->unrelate("contacts", "abc123-576475-kju838-dkie83");
+...
 ```
-To see all the available methods you can look in `vendor/sugarcrm/laravel-bean/src/Sugarcrm/Bean/Bean.php`.
+
+
