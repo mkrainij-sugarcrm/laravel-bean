@@ -40,9 +40,10 @@ Once you have laravel-bean installed you need to configure it so that it can wor
 
 ## Production configuration
 
-Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you need to configure a single file:  `app/config/packages/sugarcrm/bean/config.php` :
+Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you must first configure laravel-bean to work with your laravel instance.  To do that, go to the top directory of your laravel instance and issue the command `php artisan config:publish sugarcrm/laravel-bean`.  The new file `app/config/packages/sugarcrm/laravel-bean/config.php` will appear in your instance.  When you edit the file you'll see:
 ```
 <?php
+
 return array(
     /**
      * Populate the "api" array as follows:
@@ -59,30 +60,25 @@ return array(
      *     )
      * ),
      */
-
     'api' => array(
         'v4'  => array(
-            'url'      => 'https://mysugarserver.com/service/v4_1/rest.php',
-            'user'     => 'myv4username',
-            'password' => 'myv4userpassword',
+            'url'      => '',
+            'user'     => '',
+            'password' => '',
         ),
         'v10' => array(
-            'url'      => 'https://mysugarserver.com/rest/v10',
-            'user'     => 'myv10username',
-            'password' => 'myv10userpassword',
+            'url'      => '',
+            'user'     => '',
+            'password' => '',
         )
     ),
 );
 ```
-Right now laravel-bean uses both the v4 and v10 APIs.  Soon it will use only the v10 API.
-
-You need to provide the URL, user, and password necessary to connect with the APIs.  Note that the password for v4 will be MD5 hashed, but the password for v10 won't be.
-
-This will serve as the production configuration for laravel-bean.
+This file is the configuration for the production instance of your application.  The comments should explain what values to fill in.  Right now laravel-bean uses both the v4 and v10 APIs for SugarCRM.  Soon it will only use v10.
 
 ## Additional configurations
 
-The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  All you need to do is create a directory under `app/config/packages/sugarcrm/bean/{instance type}` and create a `config.php` file in that directory with exactly the same format.  If you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
+The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  Once you have configured the production configuration above, all you need to do is create a directory under `app/config/packages/sugarcrm/bean/{instance type}` and create a `config.php` file in that directory with exactly the same format.  If you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
 
 So, how does laravel know which configuration to use?  You use the detectEnvironment() method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php` :
 ```
@@ -92,6 +88,7 @@ $env = $app->detectEnvironment(
     array(
         'dev'   => array(
             'devel-*.ourcompany.com',
+            'alternattestingbox.ourcompany.com',
         ),
         'stage' => array('ouronlystagingserver.ourcompany.com'),
         'local' => array(
@@ -101,7 +98,7 @@ $env = $app->detectEnvironment(
     )
 );
 ```
-Once you have that in place Laravel will set the environment for you based on what machine you're on.
+Once you have that in place Laravel will set the environment for you based on what machine you're on.  It's important to realize that if you're on any machine not matching any of those conditions Laravel will assume you're in production.
 
 # Usage
 
