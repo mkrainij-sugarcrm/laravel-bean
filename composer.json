@@ -1,7 +1,7 @@
 {
     "name": "sugarcrm/laravel-bean",
     "description": "",
-    "license":"GNU Affero GPL v3.0"
+    "license":"GNU Affero GPL v3.0",
     "authors": [
         {
             "name": "David Ranney",
