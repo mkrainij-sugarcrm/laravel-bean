@@ -133,7 +133,7 @@ $options = array("limit" => 100, "where" => $where_clause);
 $my_collection = $opp->get($columns, $options);
 ...
 // Get a particular bean
-class OpportunityBean extends Bean {
+class OpportunityBean extends \Sugarcrm\Bean\Bean {
    public $module = "Opportunities";
 }
 $another_opp = OpportunityBean::find("abc123-576475-kju838-dkie83");
