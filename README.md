@@ -104,3 +104,21 @@ $env = $app->detectEnvironment(
 Once you have that in place Laravel will set the environment for you based on what machine you're on.
 
 # Usage
+
+The laravel-bean package provides for a `Bean` object which corresponds to a SugarBean in SugarCRM.  Generally you would extend Bean rather than use it directly.  For example, to represent an Opportunity you might create a class such as: 
+```
+class OpportunityBean extends \Sugarcrm\Bean\Bean {
+...
+}
+```
+You can then instantiate an Opportunity bean and use it's methods:
+```
+$opp = new OpportunityBean();
+...
+// Get all opportunities in the system (you probably shouldn't ever do this)
+$all_opportunities = $opp->all();
+...
+// Delete an opportunity
+$opp->delete("abc123-576475-kju838-dkie83");
+```
+To see all the available methods you can look in `vendor/sugarcrm/laravel-bean/src/Sugarcrm/Bean/Bean.php`.
