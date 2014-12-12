@@ -46,6 +46,7 @@ To do so, go to the top directory of your laravel instance and issue the command
 ```
 php artisan config:publish sugarcrm/laravel-bean
 ```
+
 The new file `app/config/packages/sugarcrm/laravel-bean/config.php` will appear in your instance.  When you edit the file you'll see:
 ```
 <?php
@@ -81,6 +82,15 @@ return array(
 );
 ```
 This file is the configuration for the production instance of your application.  The comments should explain what values to fill in.  Right now laravel-bean uses both the v4 and v10 APIs for SugarCRM.  Soon it will only use v10.
+
+### Metadata Cache
+
+For your convinience we store metadata locally, so you will need to add new table to your system
+
+```
+php artisan migrate --package sugarcrm/laravel-bean
+```
+
 
 ## Additional configurations
 
