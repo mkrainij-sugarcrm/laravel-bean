@@ -1,6 +1,8 @@
 {
     "name": "sugarcrm/laravel-bean",
-    "description": "",
+    "description": "Laravel wrapper for SugarCRM API",
+    "keywords": ["laravel","sugarcrm","api"],
+    "license":"GNU Affero GPL v3.0",
     "authors": [
         {
             "name": "David Ranney",
@@ -13,7 +15,8 @@
     ],
     "require": {
         "php": ">=5.3.0",
-        "illuminate/support": "4.1.*"
+        "illuminate/support": "4.1.*",
+        "illuminate/database": "4.1.*"
     },
     "autoload": {
         "classmap": [
