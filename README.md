@@ -40,7 +40,9 @@ Once you have laravel-bean installed you need to configure it so that it can wor
 
 ## Production configuration
 
-Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you must first configure laravel-bean to work with your laravel instance.  To do that, go to the top directory of your laravel instance and issue the command `php artisan config:publish sugarcrm/laravel-bean`.  The new file `app/config/packages/sugarcrm/laravel-bean/config.php` will appear in your instance.  When you edit the file you'll see:
+Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you must first configure laravel-bean to work with your laravel instance.  
+
+To do so, go to the top directory of your laravel instance and issue the command `php artisan config:publish sugarcrm/laravel-bean`.  The new file `app/config/packages/sugarcrm/laravel-bean/config.php` will appear in your instance.  When you edit the file you'll see:
 ```
 <?php
 
