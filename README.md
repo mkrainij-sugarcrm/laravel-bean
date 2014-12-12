@@ -84,9 +84,9 @@ This file is the configuration for the production instance of your application. 
 
 ## Additional configurations
 
-The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  Once you have configured the production configuration above, all you need to do is create a directory under `app/config/packages/sugarcrm/bean/{instance type}` and create a `config.php` file in that directory with exactly the same format.  If you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
+The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  Once you have configured the production configuration above, all you need to do is create a file `app/config/packages/sugarcrm/bean/{instance type}/config.php` with exactly the same format.  For example, if you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
 
-So, how does laravel know which configuration to use?  You use the detectEnvironment() method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php` :
+So, how does laravel know which configuration to use on any given machine?  You use the detectEnvironment() method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php` :
 ```
 <?php
 ...
