@@ -15,24 +15,6 @@ Here are some basic directions to get you going with this package.
 
 This package is meant to be installed via [Composer](https://getcomposer.org/).  These directions assume you have composer installed and working.
 
-In the root directory of your laravel application you should have a `composer.json` file.  Within that file, add a line for laravel-bean to the `require` section.  As an example (Here `...` indicates other stuff in your composer.json file which may exist):
-```
-{
-	"name": "laravel/laravel",
-	"description": "The Laravel Framework.",
-	"keywords": ["framework", "laravel"],
-	"license": "MIT",
-	...
-	"require": {
-		"laravel/framework": "4.1.31",
-		...
-    "sugarcrm/laravel-bean": "1.2.3",
-    ...
-	},
-...
-}
-```
-You should substitute the "1.2.3" with whatever latest production version of the package is available.  Once you've done that you can run `composer update` and it should install laravel-bean for you.  It should appear under `vendor/sugarcrm/laravel-bean`.
 
 # Configuration
 
@@ -40,48 +22,7 @@ Once you have laravel-bean installed you need to configure it so that it can wor
 
 ## Production configuration
 
-Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.  We find this to be cleaner and safer in general.  For that to work you must first configure laravel-bean to work with your laravel instance.  
-
-To do so, go to the top directory of your laravel instance and issue the command 
-```
-php artisan config:publish sugarcrm/laravel-bean
-```
-
-The new file `app/config/packages/sugarcrm/laravel-bean/config.php` will appear in your instance.  When you edit the file you'll see:
-```
-<?php
-
-return array(
-    /**
-     * Populate the "api" array as follows:
-     * 'api' => array(
-     *     'v4'  => array(
-     *         'url'      => '{full URL to the v4 REST API in SugarCRM}',
-     *         'user'     => '{username with which to attach to the v4 API}',
-     *         'password' => '{password that goes with the username}',
-     *     ),
-     *     'v10' => array(
-     *         'url'      => '{full URL to the v10 REST API in SugarCRM}',
-     *         'user'     => '{username with which to attach to the v10 API}',
-     *         'password' => '{password that goes with the username Note:  Not MD5 hashed}',
-     *     )
-     * ),
-     */
-    'api' => array(
-        'v4'  => array(
-            'url'      => '',
-            'user'     => '',
-            'password' => '',
-        ),
-        'v10' => array(
-            'url'      => '',
-            'user'     => '',
-            'password' => '',
-        )
-    ),
-);
-```
-This file is the configuration for the production instance of your application.  The comments should explain what values to fill in.  Right now laravel-bean uses both the v4 and v10 APIs for SugarCRM.  Soon it will only use v10.
+Laravel-bean communicates with SugarCRM via the API rather than through a direct database connection.
 
 ### Metadata Cache
 
@@ -92,70 +33,174 @@ php artisan migrate --package sugarcrm/laravel-bean
 ```
 
 
-## Additional configurations
-
-The laravel-bean package also supports separate configurations for "local", "dev", and "stage" instances of SugarCRM.  You can configure any, all, or none of them if you wish.  Once you have configured the production configuration above, all you need to do is create a file `app/config/packages/sugarcrm/bean/{instance type}/config.php` with exactly the same format.  For example, if you wanted to set up a staging instance you would create the file `app/config/packages/sugarcrm/bean/stage/config.php`.
-
-So, how does laravel know which configuration to use on any given machine?  You use the `detectEnvironment()` method in `bootstrap/start.php` as described in [the Laravel documentation](http://laravel.com/docs/4.2/configuration#environment-configuration).  As an example you could have the following in `bootstrap/start.php` :
-```
-<?php
-...
-$env = $app->detectEnvironment(
-    array(
-        'dev'   => array(
-            'devel-*.ourcompany.com',
-            'alternattestingbox.ourcompany.com',
-        ),
-        'stage' => array('ouronlystagingserver.ourcompany.com'),
-        'local' => array(
-            'joeslocalpc.ourcompany.com',
-            '*testdev*',
-        ),
-    )
-);
-```
-Once you have that in place Laravel will set the environment for you based on what machine you're on.  It's important to realize that if you're on any machine not matching any of those conditions Laravel will assume you're in production.
-
 # Usage
 
-The laravel-bean package provides for a `Bean` object which corresponds to a SugarBean in SugarCRM.  Generally you would extend Bean rather than use it directly.  For example, to represent an Opportunity you might create a class such as: 
+Laravel's Query Builder lies in the root of Laravel-Bean therefore most of its fucntions and principals are true to the package. 
+
+## Beans
+As of this writing Laravel-Bean is not set up to be used as true Query Builder. You will have to set up models that extend Laravel-Bean in order to use query builder
+
+SugarCRM User Modela will look something like that:
+
 ```
-class OpportunityBean extends \Sugarcrm\Bean\Bean {
-    public $module = 'Opportunities';
-...
+<?php namespace App\Models\Beans;
+
+use Sugarcrm\Bean\Bean;
+
+class UserBean extends Bean {
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'Users';
+
+
 }
+
 ```
-You can then instantiate an Opportunity bean and use it's methods.  The methods available for the Bean object mimic those available for SugarBean in SugarCRM.  Here are some examples.  Take a look at `vendor/sugarcrm/laravel-bean/src/Sugarcrm/Bean/Bean.php` to get a more complete picture:
+
+## Quering
+
+Altimate goal of the Laravel-Bean was to bring filter and relationship API of SugarCRM as close to native Laravel Eloquent as possible
+
+### Selects
+
+Following our UserBean example, we can query Users Module
+
 ```
-$opp = new OpportunityBean();
-...
-// Get all opportunities in the system (you probably shouldn't ever do this)
-$all_opportunities = $opp->all();
-...
-// Delete an opportunity
-$opp->delete("abc123-576475-kju838-dkie83");
-...
-// If you want to delete using a static call
-Bean::deleteBean("abc123-576475-kju838-dkie83");
-...
-// Get certain columns of the first 100 opportunities matching a certain where clause
-$columns = array("id","name);
-$options = array("limit" => 100, "where" => $where_clause);
-$my_collection = $opp->get($columns, $options);
-...
-// Get a particular bean
-class OpportunityBean extends \Sugarcrm\Bean\Bean {
-   public $module = "Opportunities";
-}
-$another_opp = OpportunityBean::find("abc123-576475-kju838-dkie83");
-...
-// Relate one bean to another
-$contact = ContactBean::find("abc123-576475-kju838-dkie83");
-$opportunity = OpportunityBean::find("xxyyyzz-123432-l3fl34l-d0d76hgjkeuyd");
-$opportunity->relate("contacts", "abc123-576475-kju838-dkie83");
-// Unrelate one bean from another
-$opportunity->unrelate("contacts", "abc123-576475-kju838-dkie83");
-...
+
+$bean = new UserBean();
+$beans = $bean->get(); // get all records in the module. Please keep in mind that hardcoded limit is 1000 records.
+
+
+```
+
+You can set limit and offset 
+
+```
+$beans = $bean->take(10)->get(); // get first 10 records in the module
+
+$beans = $bean->take(10)->skip(10)->get(); // get skip first 10 records and get next 10 records in the module
+
+```
+
+### Wheres
+
+Due to the nature of SugarCRM's API not all typical database oprations are available. 
+
+Below is a list of operation types:
+
+
+#### $equals
+Performs an exact match on that field.
+
+```
+$bean->where('name', 'something')->get();
 ```
 
 
+#### $not_equals
+Matches on non-matching values.
+
+```
+$bean->where('name', '!=', 'something')->get();
+```
+
+#### $starts
+Matches on anything that starts with the value.
+
+```
+$bean->whereStartsWith('name', 'something')->get();
+```
+or
+
+```
+$bean->where('name', 'starts', 'something')->get();
+```
+
+
+#### $ends
+Matches anything that ends with the value.
+
+```
+$bean->whereEndsWith('name', 'something')->get();
+```
+or
+
+```
+$bean->where('name', 'ends', 'something')->get();
+```
+
+#### $contains
+Matches anything that contains the value
+
+```
+$bean->where('name', 'like', 'something')->get();
+```
+
+
+#### $in
+Finds anything where field matches one of the values as specified as an array.
+
+
+```
+$bean->whereIn('name', array('Something','Else'))->get();
+```
+
+#### $not_in
+Finds anything where field does not matches any of the values as specified as an array.
+
+```
+$bean->whereNotIn('name', array('Something','Else'))->get();
+```
+
+
+#### $is_null
+Checks if the field is null. This operation does not need a value specified.
+
+```
+$bean->whereNull('name')->get();
+```
+
+#### $not_null
+Checks if the field is not null. This operation does not need a value specified.
+
+```
+$bean->whereNotNull('name')->get();
+```
+
+#### $lt
+Matches when the field is less than the value.
+
+```
+$bean->where('count', '<', 1)->get();
+```
+
+
+#### $lte
+Matches when the field is less than or equal to the value.
+
+```
+$bean->where('count', '<=', 1)->get();
+```
+
+#### $gt
+Matches when the field is greater than the value.
+
+```
+$bean->where('count', '>', 1)->get();
+```
+
+#### $gte
+Matches when the field is greater than or equal to the value.
+
+```
+$bean->where('count', '>=', 1)->get();
+```
+
+### Inserts
+
+### Updates
+
+### Deletes
