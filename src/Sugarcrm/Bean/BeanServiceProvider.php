@@ -1,6 +1,7 @@
 <?php namespace Sugarcrm\Bean;
 
 use Sugarcrm\Bean\Bean;
+use Sugarcrm\Bean\DatabaseManager;
 use Illuminate\Support\ServiceProvider;
 
 class BeanServiceProvider extends ServiceProvider {
