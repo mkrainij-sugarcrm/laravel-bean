@@ -232,9 +232,6 @@ class v10
             }
             $query->add($key, $value);
         }
-        echo '<pre>';
-        print_r($request->getQuery());
-        echo '</pre>';
 
         $result = $request->send()->json();
 
