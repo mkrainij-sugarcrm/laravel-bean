@@ -151,11 +151,6 @@ class Builder extends \Illuminate\Database\Query\Builder
         // The wheres to compile.
         $wheres = $this->wheres ?: array();
 
-        echo '<pre>';
-        print_r($wheres);
-        echo '</pre>';
-
-
         // We will add all compiled wheres to this array.
         $compiled = array();
 
