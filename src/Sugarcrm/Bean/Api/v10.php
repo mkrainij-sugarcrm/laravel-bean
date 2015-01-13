@@ -180,14 +180,20 @@ class v10
     }
 
     /**
-     * Function: create()
+     * Function: insert()
      * Parameters:   $module = Record Type
      *   $fields = Record field values
      * Description:  This method creates a new record of the specified type
      * Returns:  returns Array if successful, otherwise FALSE
      */
-    public function create($module, $fields)
+    public function insert($module, $fields)
     {
+
+        echo '<pre>'.$module;
+        print_r($fields);
+        echo '</pre>';
+
+
         if (!$this->check()) {
             $this->connect();
         }

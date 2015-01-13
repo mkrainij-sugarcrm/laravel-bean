@@ -1,9 +1,14 @@
 <?php namespace Sugarcrm\Bean;
 
-use Sugarcrm\Bean\Query\Builder as QueryBuilder;
+use Sugarcrm\Bean\Query\Builder as QueryBuilder,
+    Sugarcrm\Bean\Eloquent\Builder,
+    Sugarcrm\Bean\Relations\HasMany;
+
 
 abstract class Bean extends \Illuminate\Database\Eloquent\Model
 {
+
+    protected $guarded = [];
 
     /**********************************************************************
      *  SoftDelete:
@@ -25,7 +30,7 @@ abstract class Bean extends \Illuminate\Database\Eloquent\Model
     /**
      * Get a new query builder instance for the connection.
      *
-     * @return \Illuminate\Database\Query\Builder
+     * @return \Sugarcrm\Bean\Query\Builder
      */
     protected function newBaseQueryBuilder()
     {
@@ -33,4 +38,205 @@ abstract class Bean extends \Illuminate\Database\Eloquent\Model
 
         return new QueryBuilder($conn);
     }
+
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param  \Sugarcrm\Bean\Query\Builder $query
+     *
+     * @return \Sugarcrm\Bean\Eloquent\Builder|static
+     */
+    public function newEloquentBuilder($query)
+    {
+        return new Builder($query);
+    }
+
+    /**
+     * Update the model in the database.
+     *
+     * @param  array $attributes
+     *
+     * @return bool|int
+     */
+    public function update(array $attributes = array())
+    {
+        if (!$this->exists) {
+            return $this->newQuery()->update($attributes);
+        }
+
+        return $this->fill($attributes)->save();
+    }
+
+
+    /**
+     * Save the model to the database.
+     *
+     * @param  array $options
+     *
+     * @return bool
+     */
+    public function save(array $options = array())
+    {
+        $query = $this->newQueryWithoutScopes();
+
+        // If the "saving" event returns false we'll bail out of the save and return
+        // false, indicating that the save failed. This gives an opportunities to
+        // listeners to cancel save operations if validations fail or whatever.
+        if ($this->fireModelEvent('saving') === false) {
+            return false;
+        }
+
+        // If the model already exists in the database we can just update our record
+        // that is already in this database using the current IDs in this "where"
+        // clause to only update this model. Otherwise, we'll just insert them.
+        if ($this->exists) {
+            $saved = $this->updateBean($query);
+        }
+
+        // If the model is brand new, we'll insert it into our database and set the
+        // ID attribute on the model to the value of the newly inserted row's ID
+        // which is typically an auto-increment value managed by the database.
+        else {
+            $saved = $this->insertBean($query);
+        }
+
+        if ($saved) {
+            $this->finishSave($options);
+        }
+
+        return $saved;
+    }
+
+    protected function updateBean(Builder $query, array $options = [])
+    {
+
+    }
+
+
+    protected function insertBean(Builder $query, array $options = [])
+    {
+
+        if ($this->fireModelEvent('creating') === false) {
+            return false;
+        }
+
+        $attributes = $this->attributes;
+
+        $insert = $query->insert($attributes);
+
+        if (!$insert) {
+            return false;
+        }
+
+        // fill in data from API
+        $this->fill($insert);
+
+        // set flag
+        $this->exists = true;
+
+        $this->fireModelEvent('created', false);
+
+        return true;
+    }
+
+
+    /**
+     * Fire the given event for the model.
+     *
+     * @param  string $event
+     * @param  bool $halt
+     *
+     * @return mixed
+     */
+    protected function fireModelEvent($event, $halt = true)
+    {
+        if (!isset(static::$dispatcher)) {
+            return true;
+        }
+
+        // We will append the names of the class to the event to distinguish it from
+        // other model events that are fired, allowing us to listen on each model
+        // event set individually instead of catching event for all the models.
+        $event = "bean.{$event}: " . get_class($this);
+
+        $method = $halt ? 'until' : 'fire';
+
+        return static::$dispatcher->$method($event, $this);
+    }
+
+
+    /**
+     * Get the table qualified key name.
+     *
+     * @return string
+     */
+    public function getQualifiedKeyName()
+    {
+        return $this->getKeyName();
+    }
+
+    /**
+     * Get the module associated with the model.
+     *
+     * @return string
+     */
+    public function getTable()
+    {
+        if (isset($this->module)) return $this->module;
+
+        return ucwords(str_replace('\\', '', snake_case(str_plural(rtrim(class_basename($this),'Bean')))));
+    }
+
+    /**
+     * Alias for getTable()
+     *
+     * @return string
+     */
+    public function getModule()
+    {
+        return $this->getTable();
+    }
+
+    /**
+     * Set the module associated with the model.
+     *
+     * @param  string  $table
+     * @return void
+     */
+    public function setTable($table)
+    {
+        $this->module = $table;
+    }
+
+    /**
+     * Alias for setTable($table)
+     *
+     * @param $module
+     */
+    public function setModule($module)
+    {
+        $this->setTable($module);
+    }
+
+    /**
+     * Define a one-to-many relationship.
+     *
+     * @param  string  $related
+     * @param  string  $foreignKey
+     * @param  string  $localKey
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function hasMany($related, $foreignKey = null, $localKey = null)
+    {
+
+        $foreignKey = $foreignKey ?: $this->getForeignKey();
+
+        $instance = new $related;
+
+        $localKey = $localKey ?: $this->getKeyName();
+
+        return new HasMany($instance->newQuery(), $this, $foreignKey, $localKey);
+    }
+
+
 }

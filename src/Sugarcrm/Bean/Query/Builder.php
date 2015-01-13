@@ -13,6 +13,15 @@ class Builder extends \Illuminate\Database\Query\Builder
     public $limit = 1000; // had limit to prevent performance issues
 
     /**
+     *
+     * Set parent module for relate queries
+     *
+     * @var null
+     */
+    protected $parent     = null;
+    protected $parentLink = null;
+
+    /**
      * All of the available clause operators.
      *
      * @var array
@@ -28,22 +37,6 @@ class Builder extends \Illuminate\Database\Query\Builder
         'like',
         'starts',
         'ends'
-//        'not like',
-//        'between',
-//        'ilike',
-//        '&',
-//        '|',
-//        '^',
-//        '<<',
-//        '>>',
-//        'exists',
-//        'type',
-//        'mod',
-//        'where',
-//        'all',
-//        'size',
-//        'regex',
-//        'elemmatch'
     );
 
     /**
@@ -99,7 +92,14 @@ class Builder extends \Illuminate\Database\Query\Builder
             $this->columns = array();
         }
 
+        $queryPath = $this->from . '/filter';
+
         $wheres = $this->compileWheres();
+
+        if (!is_null($this->parent)) {
+            $queryPath = implode('/', [$this->parent, $wheres[$this->parentLink], 'link', $this->parentLink]);
+            unset($wheres[$this->parentLink]);
+        }
 
         // sugar wants it wrapped
         if (!empty($wheres)) {
@@ -122,7 +122,7 @@ class Builder extends \Illuminate\Database\Query\Builder
         }
 
         //
-        $result = $this->connection->filter($this->from . '/filter', $params);
+        $result = $this->connection->filter($queryPath, $params);
 
         if (is_null($result) || !array_key_exists('records', $result)) {
             return []; /// going to send empty array for now
@@ -217,6 +217,27 @@ class Builder extends \Illuminate\Database\Query\Builder
         return $query;
     }
 
+    /**
+     * Insert a new record into the database.
+     *
+     * @param  array $values
+     *
+     * @return bool
+     */
+    public function insert(array $values)
+    {
+        // without further adu, insert
+        $saved = $this->connection->insert($this->from, $values);
+
+        // see if we've saved record
+        if ($saved === false) {
+            return false;
+        }
+
+        // API will send back more data, so we're going to return full data set
+        return $saved;
+    }
+
     public function whereStartsWith($column, $values, $boolean = 'and')
     {
         $type = 'starts';
@@ -280,6 +301,13 @@ class Builder extends \Illuminate\Database\Query\Builder
 
     }
 
+    public function setupParent($parent, $link)
+    {
+        $this->parent = $parent;
+        $this->parentLink = $link;
+    }
+
+
     /**
      * Get a new instance of the query builder.
      *
@@ -289,5 +317,4 @@ class Builder extends \Illuminate\Database\Query\Builder
     {
         return new Builder($this->connection);
     }
-
-} 
+}
