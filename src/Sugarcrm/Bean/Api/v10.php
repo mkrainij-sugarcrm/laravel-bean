@@ -188,12 +188,6 @@ class v10
      */
     public function insert($module, $fields)
     {
-
-        echo '<pre>'.$module;
-        print_r($fields);
-        echo '</pre>';
-
-
         if (!$this->check()) {
             $this->connect();
         }
@@ -550,19 +544,20 @@ class v10
      * Parameters: $module = Record Type
      *   $record = The record we are working with
      *   $link = The link for the relationship
-     *   $related_record = the record to relate to
+     *   $related_record_id = the record to relate to
      *   $fields = Relationship data
      * Description:  This method relates 2 records
      * Returns:  Returns an Array if successful, otherwise FALSE
      */
-    public function relate($module, $record, $link, $related_record, $fields = array())
+    public function relate($module, $record, $link, $related_record_id, $fields = array())
     {
         if (!$this->check()) {
             $this->connect();
         }
 
-        $request = $this->client->post($module . '/' . $record . '/link/' . $link . '/' . $related_record, array(),
+        $request = $this->client->post($module . '/' . $record . '/link/' . $link . '/' . $related_record_id, array(),
             $fields);
+
         $result = $request->send()->json();
 
         if (!$result) {
