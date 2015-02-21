@@ -376,6 +376,11 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
         // which is typically an auto-increment value managed by the database.
         else {
             $result = $this->connection->create($this->module, json_encode($fields));
+            
+            // exit we got nothing
+            if(!$result){
+                return false;
+            }
 
             // exits
             $this->exists = true;
