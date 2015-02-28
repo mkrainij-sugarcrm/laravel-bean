@@ -16,7 +16,6 @@ Use this to get easy access to SugarCRM beans from your Laravel application
 # Implement missing filters
 # Test
 
-
 Here are some basic directions to get you going with this package.
 
 # Installation
