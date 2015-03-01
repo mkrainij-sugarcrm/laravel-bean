@@ -1,6 +1,7 @@
 {
     "name": "sugarcrm/laravel-bean",
-    "description": "",
+    "description": "SugarCRM eloquent style connector for Laravel Framework.",
+    "keywords": ["framework", "laravel", "sugarcrm", "bean", "eloquent"],
     "license":"GNU Affero GPL v3.0",
     "authors": [
         {
@@ -13,7 +14,9 @@
         }
     ],
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=5.4.0",
+        "illuminate/database": "5.0.*",
+        "guzzle/guzzle": "3.9.*"
     },
     "autoload": {
         "classmap": [

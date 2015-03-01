@@ -9,6 +9,13 @@ Use this to get easy access to SugarCRM beans from your Laravel application
 **THIS PACKAGE IS CURRENTLY IN AN ALPHA STATE AND IS NOT SUITABLE FOR PRODUCTION USE**
 ============
 
+# TODO
+
+# Update Guzzle to latest version (5.*)
+# Implement relationships 
+# Implement missing filters
+# Test
+
 Here are some basic directions to get you going with this package.
 
 # Installation
