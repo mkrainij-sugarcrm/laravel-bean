@@ -549,16 +549,23 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
      * @return \Carbon\Carbon
      */
     public function getUTCDate($value){
-        if (empty($value)) {
-            return \Carbon\Carbon::now()->setTimezone('UTC');
+        $outUtcDate = \Carbon\Carbon::now()->setTimezone('UTC');
+
+        if (!empty($value)) {
+
+            $format = $this->dateFormat;
+            if (stripos($value, 'T') === false) {
+                $format = 'Y-m-d H:i:s';
+            }
+            try {
+                $outUtcDate = \Carbon\Carbon::createFromFormat($format, $value)->setTimezone('UTC');
+            } catch (\InvalidArgumentException $e) {
+                // Whatever we handed to createFromFormat made it gag, so treat it the same as a null
+                $outUtcDate = \Carbon\Carbon::now()->setTimezone('UTC');
+            }
         }
 
-        $format = $this->dateFormat;
-        if (stripos($value, 'T') === false) {
-            $format = 'Y-m-d H:i:s';
-        }
-        return \Carbon\Carbon::createFromFormat($format, $value)->setTimezone('UTC');
-
+        return $outUtcDate;
     }
 
     /**
