@@ -544,7 +544,13 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
     /**
      * Format helper for all dates from API. v10 api send data in users time zone and in ISO format, old API sends DB date in UTC format.
      *
-     * @param $value
+     * @param $value - mixed - Either a string containing a date that, hopefully, createFromFormat() can deal with,
+     *     or an array of the form:
+     * array(
+     *     "date" => "{string that, hopefully, createFromFormat() can deal with}",
+     *     "timezone_type" => "",
+     *     "timezone" => "",
+     * )
      *
      * @return \Carbon\Carbon
      */
@@ -552,16 +558,26 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
         $outUtcDate = \Carbon\Carbon::now()->setTimezone('UTC');
 
         if (!empty($value)) {
-
-            $format = $this->dateFormat;
-            if (stripos($value, 'T') === false) {
-                $format = 'Y-m-d H:i:s';
+            $date_value = $value;
+            if (is_array($value)) {
+                if (!empty($value['date'])) {
+                    $date_value = $value['date'];
+                } else {
+                    $date_value = "";
+                }
             }
-            try {
-                $outUtcDate = \Carbon\Carbon::createFromFormat($format, $value)->setTimezone('UTC');
-            } catch (\InvalidArgumentException $e) {
-                // Whatever we handed to createFromFormat made it gag, so treat it the same as a null
-                $outUtcDate = \Carbon\Carbon::now()->setTimezone('UTC');
+
+            if (!empty($date_value)) {
+                $format = $this->dateFormat;
+                if (stripos($date_value, 'T') === false) {
+                    $format = 'Y-m-d H:i:s';
+                }
+                try {
+                    $outUtcDate = \Carbon\Carbon::createFromFormat($format, $date_value)->setTimezone('UTC');
+                } catch (\InvalidArgumentException $e) {
+                    // Whatever we handed to createFromFormat made it gag, so treat it the same as a null
+                    $outUtcDate = \Carbon\Carbon::now()->setTimezone('UTC');
+                }
             }
         }
 
