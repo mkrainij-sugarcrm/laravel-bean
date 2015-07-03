@@ -307,13 +307,13 @@ class v10
      * Description:  This method updates a record of the specified type
      * Returns:  Returns an Array if successful, otherwise FALSE
      */
-    public function update($module, $record, $fields)
+    public function update($module, $fields)
     {
         if (!$this->check()) {
             $this->connect();
         }
 
-        $request = $this->client->put($module . '/' . $record, null, json_encode($fields));
+        $request = $this->client->put($module, null, json_encode($fields));
         $result = $request->send()->json();
 
         if (!$result) {
@@ -494,6 +494,7 @@ class v10
         }
 
         $url = $module . '/' . $record . '/link/' . $link;
+
         if (!empty($options)) {
             $urlOptions = array();
 

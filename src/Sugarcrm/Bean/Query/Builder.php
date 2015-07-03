@@ -224,6 +224,39 @@ class Builder extends \Illuminate\Database\Query\Builder
      *
      * @return bool
      */
+    public function update(array $values)
+    {
+        // find id in where
+        $id = null;
+        $wheres = $this->compileWheres();
+
+        if (array_key_exists('id', $wheres)) {
+            $id = $wheres['id'];
+        }
+
+        if (is_null($id)) {
+            throw new \Exception('ID is missing in where query');
+        }
+
+        // without further adu, insert
+        $saved = $this->connection->update($this->from . '/' . $id, $values);
+
+        // see if we've saved record
+        if ($saved === false) {
+            return false;
+        }
+
+        // API will send back more data, so we're going to return full data set
+        return $saved;
+    }
+
+    /**
+     * Insert a new record into the database.
+     *
+     * @param  array $values
+     *
+     * @return bool
+     */
     public function insert(array $values)
     {
         // without further adu, insert
