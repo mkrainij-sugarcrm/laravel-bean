@@ -11,6 +11,13 @@ abstract class Bean extends \Illuminate\Database\Eloquent\Model
 
     protected $guarded = [];
 
+    /**
+     * The storage format of the model's date columns.
+     *
+     * @var string
+     */
+    protected $dateFormat = 'c';
+
     /**********************************************************************
      *  SoftDelete:
      **********************************************************************
@@ -108,12 +115,51 @@ abstract class Bean extends \Illuminate\Database\Eloquent\Model
         return $saved;
     }
 
+    /**
+     *
+     * Process insert
+     *
+     * @param \Sugarcrm\Bean\Eloquent\Builder $query
+     * @param array $options
+     *
+     * @return bool
+     */
     protected function updateBean(Builder $query, array $options = [])
     {
+        $dirty = $this->getDirty();
+
+        if (count($dirty) > 0) {
+            // If the updating event returns false, we will cancel the update operation so
+            // developers can hook Validation systems into their models and cancel this
+            // operation if the model does not pass validation. Otherwise, we update.
+            if ($this->fireModelEvent('updating') === false) {
+                return false;
+            }
+
+            // Once we have run the update operation, we will fire the "updated" event for
+            // this model instance. This will allow developers to hook into these after
+            // models are updated, giving them a chance to do any special processing.
+            $dirty = $this->getDirty();
+
+            if (count($dirty) > 0) {
+                $this->setKeysForSaveQuery($query)->update($dirty);
+
+                $this->fireModelEvent('updated', false);
+            }
+        }
 
     }
 
-
+    /**
+     *
+     * Process insert
+     *
+     * @param \Sugarcrm\Bean\Eloquent\Builder $query
+     * @param array $options
+     *
+     * @return bool
+     *
+     */
     protected function insertBean(Builder $query, array $options = [])
     {
 
@@ -139,7 +185,6 @@ abstract class Bean extends \Illuminate\Database\Eloquent\Model
 
         return true;
     }
-
 
     /**
      * Fire the given event for the model.
