@@ -193,7 +193,7 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
 
         $bean = $instance->connection->retrieve($instance->module, $id, $options);
 
-        return with(new static)->fill($bean, true);
+        return with(new static)->fill($bean)->syncOriginal();
     }
 
     /**
