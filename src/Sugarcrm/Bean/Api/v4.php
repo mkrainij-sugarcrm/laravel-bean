@@ -701,4 +701,56 @@ class v4 {
             );
         }
     }
+
+    /**
+     * This method finds all records related to the given module with the given id for the given
+     * relationship.  For example, if you wanted to find the ids of all cases filed on behalf of
+     * account abcd-efgh-ijkl-mnop you would call:
+     *
+     * $result = $myBean->getAllRelatedIDs("Accounts", "abcd-efgh-ijkl-mnop", "accounts_cases_1");
+     *
+     * You would then get back an array of ids
+     *
+     * This is a v4 implementation of the v10 related() method.  This should get called by the Bean::related()
+     * method.
+     *
+     * @author dranney
+     * @link IAPPS-4065
+     * @since 2015-09-21
+     * @param string - $in_module - Name of module for which you're getting related ids
+     * @param string - $in_id - ID of module record
+     * @param string - $in_rel_name - Relationship for related records
+     * @param array - $in_options - Not used
+     * @return array - Array of related ids
+     * array(
+     *     "qrst-uvwx-yzab-cdef",
+     *     ...
+     * )
+     */
+    public function related($in_module, $in_id, $in_rel_name, $in_options = array()) {
+        $out_id_arr = array();
+
+        $call_arguments = array(
+            'session' => $this->session,
+            'module_name' => $in_module,
+            'module_id' => $in_id,
+            'link_field_name' => $in_rel_name,
+            'related_module_query' => '',
+            'related_fields' => array('id'),
+            'related_module_link_name_to_fields_array' => '',
+            'deleted'=> 0,
+        );
+        $results = $this->rest_request(
+            'get_relationships',
+            $call_arguments
+        );
+
+        if (!empty($results['entry_list'])) {
+            foreach ($results['entry_list'] as $cur_entry) {
+                $out_id_arr[] = $cur_entry['id'];
+            }
+        }
+
+        return $out_id_arr;
+    }
 }
