@@ -271,6 +271,10 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
     {
         $instance = new static;
 
+        // Force connection to v10
+        $instance->setConnection(\App::make('SugarApi'));
+        $instance->connection->connect();
+
         $res = $instance->connection->related($instance->module, $id, $link, $options);
         if ($res !== false) {
             if (isset($res['error'])) {
