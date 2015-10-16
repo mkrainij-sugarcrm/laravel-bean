@@ -641,6 +641,21 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
     }
 
     /**
+    * Since email1 is being deprecated, when we see this attribute being set,
+    * we update the main email attribute
+    */
+    public function setEmail1Attribute($email) {
+       $this->setEmailAttribute($email);
+    }
+
+    /**
+    * When deprecated email1 is being used, we provide the email attribute value
+    */
+    public function getEmail1Attribute() {
+       return $this->attributes['email'][0]['email_address'];
+    }
+
+    /**
      * @param $value
      */
     public function setNameAttribute($value)
