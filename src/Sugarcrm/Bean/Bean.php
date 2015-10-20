@@ -698,7 +698,7 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
             }
        }        
         // fall back to first email of cannot find any email
-        if(is_null($email) && !is_null($this->email1)){
+        if(is_null($email) && array_key_exists('email1',$this->attributes) && !is_null($this->email1)){
             $email = $this->email1;
         }
 
