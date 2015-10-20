@@ -685,16 +685,18 @@ abstract class Bean extends \Eloquent implements \Sugarcrm\Bean\Interfaces\BeanI
     */
     public function getEmail1Attribute() {
        $email = null;
-       foreach ($this->attributes['email'] as $email_entry) {
-          if (array_key_exists('primary_address', $email_entry) && $email_entry['primary_address']) {
-            $email = $email_entry['email_address'];
-          }
-       }
-        // fall back to first email of cannot find primary_address
-        if(is_null($email) && array_key_exists(0, $this->attributes['email'])){
-            $email = $this->attributes['email'][0]['email_address'];
-        }
-        
+       if(array_key_exists('email',$this->attributes)){
+           foreach ($this->attributes['email'] as $email_entry) {
+              if (array_key_exists('primary_address', $email_entry) && $email_entry['primary_address']) {
+                $email = $email_entry['email_address'];
+              }
+           }
+       
+            // fall back to first email of cannot find primary_address
+            if(is_null($email) && array_key_exists(0, $this->attributes['email'])){
+                $email = $this->attributes['email'][0]['email_address'];
+            }
+       }        
         // fall back to first email of cannot find any email
         if(is_null($email) && !is_null($this->email1)){
             $email = $this->email1;
