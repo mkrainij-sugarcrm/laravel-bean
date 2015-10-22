@@ -1,4 +1,8 @@
 <?php namespace Sugarcrm\Bean\Api;
+use GuzzleHttp\Client as Gclient;
+use Psr\Http\Message\RequestInterface;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
 
 use Guzzle\Http\Client;
 use Guzzle\Common\Event;
@@ -23,7 +27,7 @@ class v10
      * Description:  Guzzle Client
      */
     private $client;
-
+    private $gclient;
     /**
      * Function: __construct()
      * Parameters:   none
@@ -35,7 +39,6 @@ class v10
         $this->config = $config;
         $this->client = new Client();
         $this->client->setBaseUrl($config['host']);
-
         // by default http issue will NOT through exception. API uses headers and we may get headers other than 200
         if (array_key_exists('exceptions', $options)) {
             $this->client->setDefaultOption('exceptions', $options['exceptions']);
@@ -44,12 +47,20 @@ class v10
             $this->client->setDefaultOption('exceptions', false);
         }
 
+        $gclientOptions = ['base_uri' => $config['host']];
+        if (array_key_exists('exceptions', $options)) {
+            $gclientOptions['exceptions'] = $options['exceptions'];
+            unset($options['exceptions']);
+        } else {
+            $gclientOptions['exceptions'] = false;
+        }
 
         // if you need to pass extra headers to http, use 'headers' => ['Cookie'=>'value'] format
         if (array_key_exists('headers', $options)) {
             if (is_array($options['headers'])) {
                 foreach ($options['headers'] as $k => $v) {
                     $this->client->setDefaultOption('headers/' . $k, $v);
+                    $gclientOptions['headers/' . $k] = $v;
                 }
             }
             unset($options['headers']);
@@ -59,8 +70,17 @@ class v10
         if (!empty($options)) {
             foreach ($options as $k => $v) {
                 $this->client->setDefaultOption($k, $v);
+                $gclientOptions[$k] = $v;
             }
         }
+
+
+
+        $stack = new HandlerStack();
+        $stack->setHandler(\GuzzleHttp\choose_handler());
+        $gclientOptions['handler'] = $stack;
+        $this->gclient = new Gclient($gclientOptions);
+
     }
 
     /**
@@ -75,6 +95,11 @@ class v10
             $request = $this->client->post('oauth2/logout');
             $request->setHeader('OAuth-Token', $this->token);
             $result = $request->send()->json();
+
+            //$gresp = $this->gclient->post('oauth2/logout', ['headers' => ['OAuth-Token' => $this->token]])->getBody();
+            $gresp = $this->gclient->request('POST', 'oauth2/logout',['headers' => ['OAuth-Token' => $this->token]])
+                ->getBody();
+            $result = json_decode((string) $gresp, true); ////////////////////////////////////
 
             return $result;
         }
@@ -102,26 +127,38 @@ class v10
 
         $response = $request->send();
 
+        $gresponse = $this->gclient->request('POST', 'oauth2/token',[
+            'body' => [
+                'grant_type'    => 'password',
+                'client_id'     => $this->config['client_id'],
+                'username'      => $this->config['username'],
+                'password'      => $this->config['password'],
+                "client_secret" => "",
+                "platform"      => $this->config['platform'],
+            ]
+        ]);
         if ($response->getStatusCode() >= 500) {
             throw new \Exception('SugarCRM API is not available');
         }
+        $gresults = json_decode((string) $gresponse->getBody(), true); ////////////////////////////////////
 
         $results = $response->json();
 
-        if (!$results['access_token']) {
-            if (array_key_exists('error_message', $results)) {
-                throw new \Exception('Unable to connect to SugarCRM: ' . $results['$results']);
+        if (!$gresults['access_token']) {
+            if (array_key_exists('error_message', $gresults)) {
+                throw new \Exception('Unable to connect to SugarCRM: ' . $gresults['$results']);
             } else {
                 throw new \Exception('Unable to connect to SugarCRM');
             }
         }
 
-        $token = $this->token = $results['access_token'];
+        $token = $this->token = $gresults['access_token'];
 
-        $this->client->getEventDispatcher()->addListener('request.before_send', function (Event $event) use ($token) {
-            $event['request']->setHeader('OAuth-Token', $token);
+        $this->client->getEventDispatcher()->addListener('request.before_send', function (Event $event) use ($gresults) {
+            $event['request']->setHeader('OAuth-Token', $gresults);
         });
 
+        $this->gclient->getConfig('handler')->push($this->addToken($token));
         return $this;
     }
 
@@ -138,19 +175,6 @@ class v10
         }
 
         return true;
-    }
-
-    /**
-     * Function: setUrl()
-     * Parameters:   $value = URL for the REST API
-     * Description:  Set $url
-     * Returns:  returns $url
-     */
-    public function setUrl($value)
-    {
-        $this->client->setBaseUrl($value);
-
-        return $this;
     }
 
     /**
@@ -178,7 +202,12 @@ class v10
 
         return $this;
     }
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * Function: insert()
      * Parameters:   $module = Record Type
@@ -188,18 +217,19 @@ class v10
      */
     public function insert($module, $fields)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
+        $this->checkConnection();
 
-        $request = $this->client->post($module, null, $fields);
-        $result = $request->send()->json();
+//        $request = $this->client->post($module, null, $fields);
+//        $result = $request->send()->json();
 
-        if (!$result) {
+        $gresponse = $this->gclient->request('POST', $module, ['body' => $fields]);
+        $gresults = json_decode((string) $gresponse->getBody(), true); ////////////////////////////////////
+
+        if (!$gresults) {
             return false;
         }
 
-        return $result;
+        return $gresults;
     }
 
     /**
@@ -685,5 +715,27 @@ class v10
         }
 
         return $result;
+    }
+
+    protected function checkConnection()
+    {
+        if (!$this->check()) {
+            $this->connect();
+        }
+    }
+
+
+
+    protected function addToken($token = null)
+    {
+        return function (callable $handler) use ($token) {
+            return function (
+                RequestInterface $request,
+                array $options
+            ) use ($handler, $token) {
+                $request = $token ? $request->withHeader('OAuth-Token', $token) : $request;
+                return $handler($request, $options);
+            };
+        };
     }
 }
