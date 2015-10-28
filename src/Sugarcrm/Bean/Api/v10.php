@@ -56,7 +56,7 @@ class v10
                 $gclientOptions[$k] = $v;
             }
         }
-        // we need HandlerStack to add token when connection established
+        // we need HandlerStack to add OAuth-Token to request headers when connection established
         $stack = new HandlerStack();
         $stack->setHandler(\GuzzleHttp\choose_handler());
         $gclientOptions['handler'] = $stack;
@@ -195,7 +195,7 @@ class v10
      * Description:  This method deletes a record of the specified type
      * Returns:  returns Object if successful, otherwise FALSE
      */
-    public function delete($module, $record)////////////////////////////////////////////////////////////////////////////
+    public function delete($module, $record)
     {
         $this->checkConnection();
         $gresponse = $this->gclient->request('DELETE', $module . '/' . $record);
