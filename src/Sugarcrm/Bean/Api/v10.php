@@ -1,12 +1,9 @@
 <?php namespace Sugarcrm\Bean\Api;
 use GuzzleHttp\Client as Gclient;
-use Psr\Http\Message\RequestInterface;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Handler\CurlHandler;
+use Psr\Http\Message\RequestInterface;
 
-use Guzzle\Http\Client;
-use Guzzle\Common\Event;
-use Guzzle\Http\Query;
+
 
 class v10
 {
@@ -23,10 +20,9 @@ class v10
     private $token;
 
     /**
-     * Variable: $client
+     * Variable: $gclient
      * Description:  Guzzle Client
      */
-    private $client;
     private $gclient;
     /**
      * Function: __construct()
@@ -37,16 +33,7 @@ class v10
     function __construct($config, $options = array())
     {
         $this->config = $config;
-        $this->client = new Client();
-        $this->client->setBaseUrl($config['host']);
-        // by default http issue will NOT through exception. API uses headers and we may get headers other than 200
-        if (array_key_exists('exceptions', $options)) {
-            $this->client->setDefaultOption('exceptions', $options['exceptions']);
-            unset($options['exceptions']);
-        } else {
-            $this->client->setDefaultOption('exceptions', false);
-        }
-
+        // by default http issue will NOT throw exception. API uses headers and we may get headers other than 200
         $gclientOptions = ['base_uri' => $config['host']];
         if (array_key_exists('exceptions', $options)) {
             $gclientOptions['exceptions'] = $options['exceptions'];
@@ -58,10 +45,7 @@ class v10
         // if you need to pass extra headers to http, use 'headers' => ['Cookie'=>'value'] format
         if (array_key_exists('headers', $options)) {
             if (is_array($options['headers'])) {
-                foreach ($options['headers'] as $k => $v) {
-                    $this->client->setDefaultOption('headers/' . $k, $v);
-                    $gclientOptions['headers/' . $k] = $v;
-                }
+                $gclientOptions['headers'] = $options['headers'];
             }
             unset($options['headers']);
         }
@@ -69,18 +53,15 @@ class v10
         // map rest of the options directly
         if (!empty($options)) {
             foreach ($options as $k => $v) {
-                $this->client->setDefaultOption($k, $v);
                 $gclientOptions[$k] = $v;
             }
         }
-
-
-
+        // we need HandlerStack to add token when connection established
         $stack = new HandlerStack();
         $stack->setHandler(\GuzzleHttp\choose_handler());
         $gclientOptions['handler'] = $stack;
-        $this->gclient = new Gclient($gclientOptions);
 
+        $this->gclient = new Gclient($gclientOptions);
     }
 
     /**
@@ -92,15 +73,7 @@ class v10
     function __destruct()
     {
         if (!empty($this->token)) {
-            $request = $this->client->post('oauth2/logout');
-            $request->setHeader('OAuth-Token', $this->token);
-            $result = $request->send()->json();
-
-            //$gresp = $this->gclient->post('oauth2/logout', ['headers' => ['OAuth-Token' => $this->token]])->getBody();
-            $gresp = $this->gclient->request('POST', 'oauth2/logout',['headers' => ['OAuth-Token' => $this->token]])
-                ->getBody();
-            $result = json_decode((string) $gresp, true); ////////////////////////////////////
-
+            $result = $this->getRequestResult('POST', 'oauth2/logout', ['headers' => ['OAuth-Token' => $this->token]]);
             return $result;
         }
 
@@ -116,19 +89,8 @@ class v10
      */
     public function connect()
     {
-        $request = $this->client->post('oauth2/token', null, array(
-            'grant_type'    => 'password',
-            'client_id'     => $this->config['client_id'],
-            'username'      => $this->config['username'],
-            'password'      => $this->config['password'],
-            "client_secret" => "",
-            "platform"      => $this->config['platform'],
-        ));
-
-        $response = $request->send();
-
         $gresponse = $this->gclient->request('POST', 'oauth2/token',[
-            'body' => [
+            'form_params' => [
                 'grant_type'    => 'password',
                 'client_id'     => $this->config['client_id'],
                 'username'      => $this->config['username'],
@@ -137,12 +99,10 @@ class v10
                 "platform"      => $this->config['platform'],
             ]
         ]);
-        if ($response->getStatusCode() >= 500) {
+        if ($gresponse->getStatusCode() >= 500) {
             throw new \Exception('SugarCRM API is not available');
         }
-        $gresults = json_decode((string) $gresponse->getBody(), true); ////////////////////////////////////
-
-        $results = $response->json();
+        $gresults = json_decode((string) $gresponse->getBody(), true);
 
         if (!$gresults['access_token']) {
             if (array_key_exists('error_message', $gresults)) {
@@ -153,12 +113,9 @@ class v10
         }
 
         $token = $this->token = $gresults['access_token'];
-
-        $this->client->getEventDispatcher()->addListener('request.before_send', function (Event $event) use ($gresults) {
-            $event['request']->setHeader('OAuth-Token', $gresults);
-        });
-
+        // add Middleware function to add token to headers
         $this->gclient->getConfig('handler')->push($this->addToken($token));
+
         return $this;
     }
 
@@ -170,11 +127,7 @@ class v10
      */
     public function check()
     {
-        if (!$this->token) {
-            return false;
-        }
-
-        return true;
+        return (bool) $this->token;
     }
 
     /**
@@ -202,12 +155,7 @@ class v10
 
         return $this;
     }
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Function: insert()
      * Parameters:   $module = Record Type
@@ -217,19 +165,7 @@ class v10
      */
     public function insert($module, $fields)
     {
-        $this->checkConnection();
-
-//        $request = $this->client->post($module, null, $fields);
-//        $result = $request->send()->json();
-
-        $gresponse = $this->gclient->request('POST', $module, ['body' => $fields]);
-        $gresults = json_decode((string) $gresponse->getBody(), true); ////////////////////////////////////
-
-        if (!$gresults) {
-            return false;
-        }
-
-        return $gresults;
+        return $this->getRequestResult('POST', $module, ['form_params' => $fields]);
     }
 
     /**
@@ -249,27 +185,7 @@ class v10
      */
     public function filter($module, $params = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->get($module);
-
-        $query = $request->getQuery();
-        foreach ($params as $key => $value) {
-            if ($key == 'filter' && is_array($value)) {
-                $value = json_encode($value);
-            }
-            $query->add($key, $value);
-        }
-
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return null;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', $module, ['json' => $params]);
     }
 
     /**
@@ -279,17 +195,11 @@ class v10
      * Description:  This method deletes a record of the specified type
      * Returns:  returns Object if successful, otherwise FALSE
      */
-    public function delete($module, $record)
+    public function delete($module, $record)////////////////////////////////////////////////////////////////////////////
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->delete($module . '/' . $record);
-        $response = $request->send();
-//$result  = $response->json(); // could be used to get actual error
-
-        if ($response->getStatusCode() != 200) {
+        $this->checkConnection();
+        $gresponse = $this->gclient->request('DELETE', $module . '/' . $record);
+        if ($gresponse->getStatusCode() != 200) {
             return false;
         }
 
@@ -305,10 +215,6 @@ class v10
      */
     public function retrieve($module, $record, $options = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
         $urlOptions = array();
 
         if (isset($options['fields'])) {
@@ -318,38 +224,26 @@ class v10
             $urlOptions[] = 'fields=' . $options['fields'];
         }
 
-        $request = $this->client->get($module . '/' . $record . '?' . implode('&', $urlOptions));
-
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', $module . '/' . $record . '?' . implode('&', $urlOptions));
     }
 
     /**
      * Function: update()
      * Parameters: $module = Record Type
-     *   $record = The record to update
      *   $fields = Record field values
+     *   $fields['id'] = The record to update
      * Description:  This method updates a record of the specified type
      * Returns:  Returns an Array if successful, otherwise FALSE
      */
     public function update($module, $fields)
     {
-        if (!$this->check()) {
-            $this->connect();
+        $result = false;
+        if (isset($fields['id'])) {
+            $record = $fields['id'];
+            unset($fields['id']);
+
+            $result = $this->getRequestResult('PUT', $module . '/' . $record, ['json' => $fields]);
         }
-
-        $request = $this->client->put($module, null, json_encode($fields));
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
         return $result;
     }
 
@@ -362,18 +256,7 @@ class v10
      */
     public function favorite($module, $record)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->put($module . '/' . $record . '/favorite');
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('PUT', $module . '/' . $record . '/favorite');
     }
 
     /**
@@ -385,18 +268,7 @@ class v10
      */
     public function unfavorite($module, $record)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->delete($module . '/' . $record . '/favorite');
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('DELETE', $module . '/' . $record . '/favorite');
     }
 
     /**
@@ -408,18 +280,7 @@ class v10
      */
     public function files($module, $record)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->get($module . '/' . $record . '/file');
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', $module . '/' . $record . '/file');
     }
 
     /**
@@ -430,21 +291,18 @@ class v10
      * Description:  Gets the contents of a single file related to a field for a module record.
      * Returns:  Returns an Array if successful, otherwise FALSE
      */
-    public function download($module, $record, $field, $destination)
+    public function download($module, $record, $field, $destination = null)
     {
-        if (!$this->check()) {
-            $this->connect();
+        $this->checkConnection();
+
+        $options = [];
+        if (is_string($destination)) {
+            $resource = fopen($destination, 'w+');
+            $options['sink'] = $resource;
         }
 
-        $request = $this->client->get($module . '/' . $record . '/file/' . $field);
-        $request->setResponseBody($destination);
-        $result = $request->send();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        $result = $this->gclient->request('GET', $module . '/' . $record . '/file/' . $field, $options);
+        return !$result ? false : $result;
     }
 
     /**
@@ -461,27 +319,20 @@ class v10
      */
     public function upload($module, $record, $field, $path, $params = array())
     {
-        if (!$this->check()) {
-            $this->connect();
+        $this->checkConnection();
+
+        // we must add oauth_token if delete_if_fails is true
+        if (isset($params['delete_if_fails']) && $params['delete_if_fails']) {
+            $params["oauth_token"] = $this->token;
         }
 
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $contentType = finfo_file($finfo, $path);
-        finfo_close($finfo);
+        $body = fopen($path, 'r');
+        $uri = $module . '/' . $record . '/file/' . $field;
+        $gresponse = $this->gclient->request('PUT', $uri, ['body' => $body, 'query' => $params]);
 
-        $request = $this->client->put($module . '/' . $record . '/file/' . $field, array(), fopen($path, 'r'),
-            array('query' => $params));
-        $request->setHeader('Content-Type', $contentType);
-        $result = $request->send();
-
-        error_log("Response Content Type: " . $result->getContentType());
-
-        $r = json_decode(html_entity_decode($result->getBody(true)), true);
-        if (!$r) {
-            return false;
-        }
-
-        return $r;
+        error_log("Response Content Type: " . $gresponse->getHeader('Content-Type')[0]);
+        $result = json_decode(html_entity_decode($gresponse->getBody(true)), true);
+        return !$result ? false : $result;
     }
 
     /**
@@ -494,18 +345,7 @@ class v10
      */
     public function deleteFile($module, $record, $field)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->delete($module . '/' . $record . '/file/' . $field);
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('DELETE', $module . '/' . $record . '/file/' . $field);
     }
 
     /**
@@ -519,10 +359,6 @@ class v10
      */
     public function related($module, $record, $link, $options = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
         $url = $module . '/' . $record . '/link/' . $link;
 
         if (!empty($options)) {
@@ -560,14 +396,7 @@ class v10
             $url .= '?' . join('&', $urlOptions);
         }
 
-        $request = $this->client->get($url);
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', $url);
     }
 
     /**
@@ -582,20 +411,11 @@ class v10
      */
     public function relate($module, $record, $link, $related_record_id, $fields = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->post($module . '/' . $record . '/link/' . $link . '/' . $related_record_id, array(),
-            $fields);
-
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult(
+            'POST',
+            $module . '/' . $record . '/link/' . $link . '/' . $related_record_id,
+            ['json' => $fields]
+        );
     }
 
     /**
@@ -607,18 +427,7 @@ class v10
      */
     public function unrelate($module, $record, $link, $related_record)
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->delete($module . '/' . $record . '/link/' . $link . '/' . $related_record);
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('DELETE', $module . '/' . $record . '/link/' . $link . '/' . $related_record);
     }
 
     /**
@@ -633,40 +442,21 @@ class v10
      */
     public function updateRelationship($module, $record, $link, $related_record, $fields = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->put($module . '/' . $record . '/link/' . $link . '/' . $related_record, array(),
-            json_encode($fields));
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult(
+            'PUT',
+            $module . '/' . $record . '/link/' . $link . '/' . $related_record,
+            ['json' => $fields]
+        );
     }
 
     public function metadata()
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->get('metadata');
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', 'metadata');
     }
 
     /**
      *
-     * Get language file form the SugarCRM
+     * Get language file from the SugarCRM
      *
      * @param string $l
      *
@@ -674,23 +464,10 @@ class v10
      */
     public function lang($l = 'en')
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-
-        $request = $this->client->get('lang/' . $l);
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult('GET', 'lang/' . $l);
     }
 
     /**
-     *
-     * DO NOT USE!!! Have not even tried.
      *
      * @param        $what
      * @param string $method
@@ -699,24 +476,16 @@ class v10
      * @return bool
      *
      */
-    public function call($what, $method = 'get', $data = array())
+    public function call($what, $method = 'GET', $data = array())
     {
-        if (!$this->check()) {
-            $this->connect();
-        }
-        $method = strtolower($method);
-
-        $request = $this->client->$method($what, json_encode($data));
-
-        $result = $request->send()->json();
-
-        if (!$result) {
-            return false;
-        }
-
-        return $result;
+        return $this->getRequestResult($method, $what, ['json' => $data]);
     }
 
+    /**
+     * check connection
+     *
+     * @throws \Exception
+     */
     protected function checkConnection()
     {
         if (!$this->check()) {
@@ -724,8 +493,29 @@ class v10
         }
     }
 
+    /**
+     * get request result
+     *
+     * @param string $method
+     * @param string $uri
+     * @param array $options
+     * @return mixed
+     */
+    protected function getRequestResult($method, $uri, $options = [])
+    {
+        $this->checkConnection();
+        $gresponse = $this->gclient->request($method, $uri, $options)->getBody();
+        $result = json_decode((string) $gresponse, true);
+        return ($result && !isset($result['error'])) ? $result : false;
 
+    }
 
+    /**
+     * add token to headers
+     *
+     * @param string|null $token
+     * @return \Closure
+     */
     protected function addToken($token = null)
     {
         return function (callable $handler) use ($token) {
@@ -738,4 +528,5 @@ class v10
             };
         };
     }
+
 }
