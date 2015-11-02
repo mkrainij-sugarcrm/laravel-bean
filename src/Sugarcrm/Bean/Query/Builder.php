@@ -76,7 +76,7 @@ class Builder extends \Illuminate\Database\Query\Builder
      *
      * @return array|static[]
      */
-    public function getFresh($columns = array('*'))
+    public function get($columns = array('*'))
     {
         $start = microtime(true);
 
