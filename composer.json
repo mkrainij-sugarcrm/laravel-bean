@@ -18,6 +18,9 @@
         "illuminate/database": "~5.0",
         "guzzlehttp/guzzle": "~5.3|~6.0"
     },
+    "require-dev": {
+        "fzaninotto/faker": "1.5.*"
+    },
     "autoload": {
         "classmap": [
             "src/migrations"
