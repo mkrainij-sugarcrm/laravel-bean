@@ -3,7 +3,7 @@
 use Sugarcrm\Bean\Cache\FieldMetadata;
 use Faker\Factory;
 
-class v10Fake
+class v10
 {
     /**
      * Variable: $config
